@@ -1,0 +1,115 @@
+{{- if .Values.canary.enabled -}}
+# Replaces the Deployment with an Argo Rollouts Rollout when canary is enabled.
+# The Deployment template skips itself when .Values.canary.enabled is true.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "credit-default-api.fullname" . }}
+  labels:
+    {{- include "credit-default-api.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "credit-default-api.selectorLabels" . | nindent 6 }}
+  strategy:
+    canary:
+      maxSurge: 25%
+      maxUnavailable: 0
+      steps:
+        {{- range .Values.canary.steps }}
+        {{- if .setWeight }}
+        - setWeight: {{ .setWeight }}
+        {{- end }}
+        {{- if .pause }}
+        - pause: {{ toYaml .pause | nindent 12 }}
+        {{- end }}
+        {{- if .analysis }}
+        - analysis:
+            templates:
+              - templateName: {{ .analysis.templateName }}
+            args:
+              {{- range .analysis.args }}
+              - name: {{ .name }}
+                value: {{ .value | quote }}
+              {{- end }}
+        {{- end }}
+        {{- end }}
+      analysis:
+        startingStep: {{ .Values.canary.analysisStartingStep }}
+        templates:
+          - templateName: {{ include "credit-default-api.fullname" . }}-error-rate
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "credit-default-api.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "credit-default-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: {{ include "credit-default-api.fullname" . }}
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: {{ .Values.probes.startup.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "credit-default-api.fullname" . }}-error-rate
+  labels:
+    {{- include "credit-default-api.labels" . | nindent 4 }}
+spec:
+  metrics:
+    - name: error-rate
+      interval: 1m
+      count: 5                       # five consecutive 1-min checks
+      successCondition: result[0] < 0.02
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc:9090
+          query: |
+            sum(rate(api_requests_total{status=~"5..",app_kubernetes_io_instance="{{ .Release.Name }}"}[2m]))
+              /
+            sum(rate(api_requests_total{app_kubernetes_io_instance="{{ .Release.Name }}"}[2m]))
+    - name: latency-p95
+      interval: 1m
+      count: 5
+      successCondition: result[0] < 0.5
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc:9090
+          query: |
+            histogram_quantile(0.95,
+              sum by (le) (rate(api_request_duration_seconds_bucket{
+                app_kubernetes_io_instance="{{ .Release.Name }}", endpoint="/predict"}[2m])))
+{{- end }}

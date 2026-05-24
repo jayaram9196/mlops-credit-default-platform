@@ -18,7 +18,7 @@ See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the full plan and JD-bu
 - [x] Phase 4 — Kubernetes (Helm)
 - [x] Phase 5 — Terraform AWS infra
 - [x] Phase 6 — Monitoring (Prometheus + Grafana + Evidently)
-- [ ] Phase 7 — Retraining orchestration (Airflow)
+- [x] Phase 7 — Retraining orchestration (Airflow) + Argo Rollouts canary
 - [ ] Phase 8 — LLM/RAG explanation layer
 - [ ] Phase 9 — Polish + resume artifacts
 

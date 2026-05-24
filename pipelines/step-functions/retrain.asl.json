@@ -1,0 +1,124 @@
+{
+  "Comment": "credit-default retrain — Step Functions alternative to the Airflow DAG.",
+  "StartAt": "CheckDrift",
+  "States": {
+    "CheckDrift": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${DriftCheckFunctionArn}",
+        "Payload.$": "$"
+      },
+      "ResultSelector": { "drift_share.$": "$.Payload.share_drifted" },
+      "ResultPath": "$.drift",
+      "Next": "DriftChoice"
+    },
+
+    "DriftChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.drift.drift_share",
+          "NumericGreaterThan": 0.3,
+          "Next": "TrainOnSageMaker"
+        }
+      ],
+      "Default": "Skip"
+    },
+
+    "Skip": { "Type": "Pass", "End": true },
+
+    "TrainOnSageMaker": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sagemaker:createTrainingJob.sync",
+      "Parameters": {
+        "TrainingJobName.$": "States.Format('credit-default-{}', $$.Execution.Name)",
+        "AlgorithmSpecification": {
+          "TrainingImage": "${TrainingImageUri}",
+          "TrainingInputMode": "File"
+        },
+        "RoleArn": "${SageMakerRoleArn}",
+        "ResourceConfig": {
+          "InstanceCount": 1,
+          "InstanceType": "ml.m5.xlarge",
+          "VolumeSizeInGB": 30
+        },
+        "InputDataConfig": [
+          {
+            "ChannelName": "training",
+            "DataSource": {
+              "S3DataSource": {
+                "S3Uri": "s3://${DataBucket}/processed/train.parquet",
+                "S3DataType": "S3Prefix",
+                "S3DataDistributionType": "FullyReplicated"
+              }
+            }
+          }
+        ],
+        "OutputDataConfig": {
+          "S3OutputPath": "s3://${ArtifactsBucket}/sagemaker/training/"
+        },
+        "StoppingCondition": { "MaxRuntimeInSeconds": 7200 }
+      },
+      "Next": "EvaluateAndGate"
+    },
+
+    "EvaluateAndGate": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${EvaluateGateFunctionArn}",
+        "Payload": {
+          "training_job.$": "$.TrainingJobName",
+          "model_s3.$": "$.ModelArtifacts.S3ModelArtifacts"
+        }
+      },
+      "ResultPath": "$.eval",
+      "Next": "GateChoice"
+    },
+
+    "GateChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.eval.Payload.gates_passed",
+          "BooleanEquals": true,
+          "Next": "PromoteAndCanary"
+        }
+      ],
+      "Default": "NotifyFailure"
+    },
+
+    "PromoteAndCanary": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${PromoteAndCanaryFunctionArn}",
+        "Payload.$": "$"
+      },
+      "Next": "NotifySuccess"
+    },
+
+    "NotifySuccess": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${SnsTopicArn}",
+        "Subject": "credit-default retrain succeeded",
+        "Message.$": "$"
+      },
+      "End": true
+    },
+
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${SnsTopicArn}",
+        "Subject": "credit-default retrain blocked at fairness/AUC gate",
+        "Message.$": "$"
+      },
+      "End": true
+    }
+  }
+}

@@ -1,0 +1,4 @@
+# Extra packages the Airflow worker needs alongside the project's own deps.
+# Project deps come from the API image's site-packages (mounted into the worker).
+apache-airflow-providers-slack>=8.0
+apache-airflow-providers-cncf-kubernetes>=8.0

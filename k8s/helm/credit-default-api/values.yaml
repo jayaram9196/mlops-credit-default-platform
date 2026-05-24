@@ -134,6 +134,21 @@ config:
 secrets: {}
 #   MLFLOW_TRACKING_TOKEN: "..."
 
+# Canary rollout via Argo Rollouts (Phase 7). When enabled, the chart renders a
+# Rollout instead of a Deployment and an AnalysisTemplate that checks 5xx rate
+# + p95 latency from Prometheus during each canary step.
+canary:
+  enabled: false
+  analysisStartingStep: 2     # skip the first two weight steps before running checks
+  steps:
+    - setWeight: 10
+    - pause: { duration: 5m }
+    - setWeight: 25
+    - pause: { duration: 5m }
+    - setWeight: 50
+    - pause: { duration: 5m }
+    - setWeight: 100
+
 # Scheduled drift detection (Phase 6). Hits Evidently with reference vs current
 # parquet files pulled from S3. Set referenceUri/currentUri or override the
 # command/args to point at your own data location.
