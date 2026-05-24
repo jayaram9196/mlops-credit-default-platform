@@ -64,6 +64,8 @@ logs/
 *.tfstate.*
 *.tfvars
 !example.tfvars
+!envs/*.tfvars
+!infra/envs/*.tfvars
 crash.log
 
 # DVC
