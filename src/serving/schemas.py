@@ -103,3 +103,19 @@ class HealthResponse(BaseModel):
     status: Literal["ok", "degraded"]
     model_version: str
     feature_count: int
+
+
+class PolicyCitation(BaseModel):
+    policy_id: str
+    section: str
+    source: str = ""
+
+
+class LLMExplanationResponse(BaseModel):
+    request_id: str
+    model_version: str
+    probability_of_default: float
+    decision: Decision
+    explanation: str
+    top_drivers: list[FeatureContribution]
+    citations: list[PolicyCitation]

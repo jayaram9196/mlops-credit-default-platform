@@ -53,6 +53,13 @@ model_registration:
   staging_alias: staging
   production_alias: production
 
+llm:
+  provider: fake                       # fake | openai | bedrock
+  index_dir: data/policies/.faiss
+  embeddings_provider: huggingface
+  top_k_drivers: 5
+  top_k_docs: 4
+
 monitoring:
   reference_path: monitoring/state/reference.parquet
   current_path: monitoring/state/current.parquet

@@ -27,6 +27,8 @@ from src.serving.schemas import (
     ExplanationRequest,
     ExplanationResponse,
     HealthResponse,
+    LLMExplanationResponse,
+    PolicyCitation,
     PredictionRequest,
     PredictionResponse,
     PredictionResult,
@@ -131,6 +133,58 @@ def predict(payload: PredictionRequest, request: Request) -> PredictionResponse:
         request_id=request.state.request_id,
         model_version=svc.version,
         predictions=predictions,
+    )
+
+
+def _load_retriever_once(request: Request):
+    """Lazy, cached load of the FAISS retriever.
+
+    Avoids embedding-model download at startup so the API stays light for
+    callers that only hit /predict + /explain.
+    """
+    cached = getattr(request.app.state, "retriever", None)
+    if cached is not None:
+        return cached
+    from src.llm.vectorstore import load_index
+
+    store = load_index()
+    retriever = store.as_retriever(search_kwargs={"k": 8})
+    request.app.state.retriever = retriever
+    log.info("serving.retriever.loaded")
+    return retriever
+
+
+@app.post("/explain/llm", response_model=LLMExplanationResponse)
+def explain_llm(payload: ExplanationRequest, request: Request) -> LLMExplanationResponse:
+    from src.llm.explainer import explain as rag_explain
+
+    svc: ModelService = request.app.state.service
+    try:
+        retriever = _load_retriever_once(request)
+        result = rag_explain(payload.application, svc, retriever)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Policy vector index not built. Run `python -m src.llm.cli build` "
+                "before invoking /explain/llm."
+            ),
+        ) from exc
+    except Exception as exc:
+        log.error("explain.llm.error", error=str(exc), request_id=request.state.request_id)
+        raise HTTPException(status_code=500, detail="llm explanation failed") from exc
+
+    PREDICTION_COUNT.labels(decision=result.decision).inc()
+    PREDICTION_SCORE.observe(result.probability)
+
+    return LLMExplanationResponse(
+        request_id=request.state.request_id,
+        model_version=svc.version,
+        probability_of_default=result.probability,
+        decision=result.decision,
+        explanation=result.explanation,
+        top_drivers=result.drivers,
+        citations=[PolicyCitation(**c) for c in result.citations],
     )
 
 
