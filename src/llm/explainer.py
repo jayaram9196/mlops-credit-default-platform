@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from src.serving.schemas import FeatureContribution, LoanApplication
+from src.serving.schemas import Decision, FeatureContribution, LoanApplication
 from src.utils import get_logger, load_params
 
 log = get_logger(__name__)
@@ -71,7 +71,7 @@ PROTECTED_FEATURES = {
 
 @dataclass
 class LLMExplanation:
-    decision: str
+    decision: Decision
     probability: float
     explanation: str
     drivers: list[FeatureContribution]

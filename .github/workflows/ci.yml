@@ -31,7 +31,7 @@ jobs:
       - name: install
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[serving,monitoring,dev]"
+          pip install -e ".[serving,monitoring,llm,dev]"
 
       - name: ruff
         run: ruff check src tests
@@ -58,7 +58,7 @@ jobs:
       - name: install
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[serving,monitoring,dev]"
+          pip install -e ".[serving,monitoring,llm,dev]"
 
       - name: pytest unit
         run: pytest tests/unit -v --cov=src --cov-report=xml --cov-report=term
@@ -87,7 +87,7 @@ jobs:
       - name: install
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[serving,monitoring,dev]"
+          pip install -e ".[serving,monitoring,llm,dev]"
 
       - name: smoke pipeline (ingest -> features -> train)
         env:
