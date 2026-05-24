@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -76,7 +76,7 @@ def summarise(snapshot) -> DriftSummary:
                 n_drifted += 1
     share = (n_drifted / n_columns) if n_columns else 0.0
     return DriftSummary(
-        timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        timestamp=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         n_columns=n_columns,
         n_drifted=n_drifted,
         share_drifted=share,
