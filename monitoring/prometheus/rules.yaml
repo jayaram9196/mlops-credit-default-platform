@@ -1,0 +1,85 @@
+# Prometheus alerting + recording rules for credit-default-api.
+# Apply with the Prometheus Operator's PrometheusRule CRD, or include directly
+# in a vanilla Prometheus's rule_files: list.
+
+groups:
+  - name: credit-default-api.recording
+    interval: 30s
+    rules:
+      - record: job:credit_default_requests:rate5m
+        expr: |
+          sum by (endpoint, status) (rate(api_requests_total[5m]))
+
+      - record: job:credit_default_latency_p95:5m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, endpoint) (rate(api_request_duration_seconds_bucket[5m]))
+          )
+
+      - record: job:credit_default_prediction_rate:5m
+        expr: |
+          sum by (decision) (rate(model_predictions_total[5m]))
+
+  - name: credit-default-api.alerts
+    rules:
+
+      - alert: CreditDefaultApiHighErrorRate
+        expr: |
+          sum(rate(api_requests_total{status=~"5.."}[5m]))
+            /
+          sum(rate(api_requests_total[5m]))
+            > 0.05
+        for: 5m
+        labels: { severity: critical, team: mlops }
+        annotations:
+          summary: ">5% 5xx errors for 5 minutes"
+          description: |
+            The /predict surface is returning more than 5% server errors.
+            Check pod logs and the most recent model_predictions_total trend.
+
+      - alert: CreditDefaultApiLatencyHigh
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(api_request_duration_seconds_bucket{endpoint="/predict"}[5m]))
+          ) > 0.5
+        for: 10m
+        labels: { severity: warning, team: mlops }
+        annotations:
+          summary: "p95 latency on /predict > 500ms for 10 minutes"
+
+      - alert: CreditDefaultApiPredictionRateZero
+        expr: |
+          sum(rate(model_predictions_total[10m])) == 0
+        for: 15m
+        labels: { severity: warning, team: mlops }
+        annotations:
+          summary: "No predictions in 15 minutes"
+          description: |
+            Either the upstream caller has gone silent or the model is stuck.
+            Confirm via the SRE dashboard and pod liveness.
+
+      - alert: CreditDefaultApiDecisionSkew
+        expr: |
+          (
+            sum(rate(model_predictions_total{decision="deny"}[1h]))
+              /
+            sum(rate(model_predictions_total[1h]))
+          ) > 0.6
+        for: 30m
+        labels: { severity: warning, team: mlops }
+        annotations:
+          summary: ">60% of decisions are 'deny' for 30 minutes"
+          description: |
+            Either input population has shifted, the threshold needs review,
+            or the model has degraded. Run the drift CronJob and review fairness.
+
+      - alert: CreditDefaultApiPodNotReady
+        expr: |
+          kube_deployment_status_replicas_available{deployment=~"credit-default-api"}
+            < kube_deployment_spec_replicas{deployment=~"credit-default-api"}
+        for: 10m
+        labels: { severity: critical, team: mlops }
+        annotations:
+          summary: "Deployment has fewer Ready replicas than desired"

@@ -1,0 +1,54 @@
+{{- if .Values.drift.enabled -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "credit-default-api.fullname" . }}-drift
+  labels:
+    {{- include "credit-default-api.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.drift.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "credit-default-api.selectorLabels" . | nindent 12 }}
+            job: drift
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ include "credit-default-api.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          containers:
+            - name: drift
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              securityContext:
+                {{- toYaml .Values.containerSecurityContext | nindent 16 }}
+              command: ["python", "-m", "src.monitoring.drift"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "credit-default-api.fullname" . }}
+              env:
+                - name: REFERENCE_S3_URI
+                  value: {{ .Values.drift.referenceUri | quote }}
+                - name: CURRENT_S3_URI
+                  value: {{ .Values.drift.currentUri | quote }}
+              resources:
+                {{- toYaml .Values.drift.resources | nindent 16 }}
+              volumeMounts:
+                - name: state
+                  mountPath: /app/monitoring/state
+                - name: models
+                  mountPath: /app/models
+                  readOnly: true
+          volumes:
+            - name: state
+              emptyDir: { sizeLimit: 256Mi }
+            - name: models
+              emptyDir: { sizeLimit: 1Gi }
+{{- end }}

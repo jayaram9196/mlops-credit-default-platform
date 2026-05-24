@@ -53,6 +53,12 @@ model_registration:
   staging_alias: staging
   production_alias: production
 
+monitoring:
+  reference_path: monitoring/state/reference.parquet
+  current_path: monitoring/state/current.parquet
+  reports_dir: reports/drift
+  share_drifted_threshold: 0.30        # fraction of columns drifted before we page
+
 serving:
   host: 0.0.0.0
   port: 8000

@@ -17,7 +17,7 @@ See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the full plan and JD-bu
 - [x] Phase 3 — CI/CD (GitHub Actions + Jenkins)
 - [x] Phase 4 — Kubernetes (Helm)
 - [x] Phase 5 — Terraform AWS infra
-- [ ] Phase 6 — Monitoring (Prometheus + Grafana + Evidently)
+- [x] Phase 6 — Monitoring (Prometheus + Grafana + Evidently)
 - [ ] Phase 7 — Retraining orchestration (Airflow)
 - [ ] Phase 8 — LLM/RAG explanation layer
 - [ ] Phase 9 — Polish + resume artifacts

@@ -134,6 +134,18 @@ config:
 secrets: {}
 #   MLFLOW_TRACKING_TOKEN: "..."
 
+# Scheduled drift detection (Phase 6). Hits Evidently with reference vs current
+# parquet files pulled from S3. Set referenceUri/currentUri or override the
+# command/args to point at your own data location.
+drift:
+  enabled: false
+  schedule: "0 */6 * * *"
+  referenceUri: s3://<bucket>/monitoring/reference.parquet
+  currentUri: s3://<bucket>/monitoring/current.parquet
+  resources:
+    requests: { cpu: "200m", memory: "512Mi" }
+    limits:   { cpu: "1000m", memory: "1Gi" }
+
 nodeSelector: {}
 tolerations: []
 affinity: {}
