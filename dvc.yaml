@@ -1,0 +1,84 @@
+stages:
+  ingest:
+    cmd: python -m src.data.ingest
+    deps:
+      - src/data/ingest.py
+      - src/utils.py
+    params:
+      - data_ingestion
+    outs:
+      - data/raw/credit_default.csv
+      - data/interim/credit_default_train.csv
+      - data/interim/credit_default_holdout.csv
+
+  validate:
+    cmd: python -m src.data.validate
+    deps:
+      - src/data/validate.py
+      - src/data/schemas.py
+      - data/interim/credit_default_train.csv
+      - data/interim/credit_default_holdout.csv
+    params:
+      - data_validation
+    metrics:
+      - reports/validation.json:
+          cache: false
+
+  features:
+    cmd: python -m src.features.build
+    deps:
+      - src/features/build.py
+      - src/utils.py
+      - data/interim/credit_default_train.csv
+      - data/interim/credit_default_holdout.csv
+    params:
+      - feature_engineering
+    outs:
+      - data/processed/train.parquet
+      - data/processed/holdout.parquet
+      - models/transformer.joblib
+
+  train:
+    cmd: python -m src.models.train
+    deps:
+      - src/models/train.py
+      - data/processed/train.parquet
+    params:
+      - model_training
+      - model_training_lightgbm
+      - model_registration
+    outs:
+      - models/model.joblib
+      - reports/optuna_study.csv:
+          cache: false
+
+  evaluate:
+    cmd: python -m src.models.evaluate
+    deps:
+      - src/models/evaluate.py
+      - src/models/fairness.py
+      - src/models/explain.py
+      - data/processed/holdout.parquet
+      - models/model.joblib
+    params:
+      - model_evaluation
+    metrics:
+      - reports/metrics.json:
+          cache: false
+    plots:
+      - reports/plots/roc_curve.png:
+          cache: false
+      - reports/plots/calibration.png:
+          cache: false
+      - reports/plots/shap_summary.png:
+          cache: false
+
+  register:
+    cmd: python -m src.models.register
+    deps:
+      - src/models/register.py
+      - reports/metrics.json
+      - models/model.joblib
+    params:
+      - model_evaluation
+      - model_registration

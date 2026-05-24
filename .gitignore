@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Envs
+.venv/
+venv/
+env/
+.env
+.env.local
+.python-version
+
+# Notebooks
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data — tracked by DVC, not git
+data/raw/
+data/interim/
+data/processed/
+data/external/
+!data/**/.gitkeep
+
+# Models / artifacts
+*.pkl
+*.joblib
+*.h5
+*.onnx
+mlruns/
+mlflow.db
+artifacts/
+
+# Logs
+*.log
+logs/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+crash.log
+
+# DVC
+.dvc/tmp
+.dvc/cache
+
+# Secrets
+*.pem
+*.key
+secrets/

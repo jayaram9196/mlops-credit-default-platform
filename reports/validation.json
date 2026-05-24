@@ -1,0 +1,15 @@
+{
+  "total_violations": 0,
+  "datasets": [
+    {
+      "dataset": "credit_default_train",
+      "rows": 24000,
+      "violations": 0
+    },
+    {
+      "dataset": "credit_default_holdout",
+      "rows": 6000,
+      "violations": 0
+    }
+  ]
+}
