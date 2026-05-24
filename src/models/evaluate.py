@@ -150,8 +150,15 @@ def main() -> int:
     mlflow.set_tracking_uri(project_path("mlruns").as_uri())
     mlflow.set_experiment(reg_cfg["mlflow_experiment"])
     with mlflow.start_run(run_name="evaluate"):
-        mlflow.log_metrics({"holdout_auc": auc, "holdout_ks": ks, "holdout_pr_auc": pr_auc,
-                            "holdout_lift10": lift10, "holdout_brier": brier})
+        mlflow.log_metrics(
+            {
+                "holdout_auc": auc,
+                "holdout_ks": ks,
+                "holdout_pr_auc": pr_auc,
+                "holdout_lift10": lift10,
+                "holdout_brier": brier,
+            }
+        )
         for f in fairness:
             mlflow.log_metric(f"dpd_{f['attribute']}", f["demographic_parity_diff"])
             mlflow.log_metric(f"eod_{f['attribute']}", f["equal_opportunity_diff"])

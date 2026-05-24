@@ -68,7 +68,8 @@ def cv_objective(
 
         model = lgb.LGBMClassifier(**params)
         model.fit(
-            X_tr, y_tr,
+            X_tr,
+            y_tr,
             eval_set=[(X_va, y_va)],
             callbacks=[lgb.early_stopping(early_stopping_rounds, verbose=False)],
         )
@@ -126,7 +127,10 @@ def main() -> int:
         )
         study.optimize(
             lambda t: cv_objective(
-                t, X, y, base_params,
+                t,
+                X,
+                y,
+                base_params,
                 cv_folds=train_cfg["cv_folds"],
                 early_stopping_rounds=train_cfg["early_stopping_rounds"],
                 random_state=train_cfg["random_state"],

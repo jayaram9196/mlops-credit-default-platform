@@ -43,26 +43,38 @@ def compute_fairness(
     dp = demographic_parity_difference(y_true, y_pred, sensitive_features=sensitive)
     eo = equalized_odds_difference(y_true, y_pred, sensitive_features=sensitive)
 
-    by_group_auc = MetricFrame(
-        metrics={"auc": roc_auc_score},
-        y_true=y_true,
-        y_pred=y_score,
-        sensitive_features=sensitive,
-    ).by_group["auc"].to_dict()
+    by_group_auc = (
+        MetricFrame(
+            metrics={"auc": roc_auc_score},
+            y_true=y_true,
+            y_pred=y_score,
+            sensitive_features=sensitive,
+        )
+        .by_group["auc"]
+        .to_dict()
+    )
 
-    by_group_tpr = MetricFrame(
-        metrics={"tpr": true_positive_rate},
-        y_true=y_true,
-        y_pred=y_pred,
-        sensitive_features=sensitive,
-    ).by_group["tpr"].to_dict()
+    by_group_tpr = (
+        MetricFrame(
+            metrics={"tpr": true_positive_rate},
+            y_true=y_true,
+            y_pred=y_pred,
+            sensitive_features=sensitive,
+        )
+        .by_group["tpr"]
+        .to_dict()
+    )
 
-    by_group_sel = MetricFrame(
-        metrics={"sel": _selection_rate},
-        y_true=y_true,
-        y_pred=y_pred,
-        sensitive_features=sensitive,
-    ).by_group["sel"].to_dict()
+    by_group_sel = (
+        MetricFrame(
+            metrics={"sel": _selection_rate},
+            y_true=y_true,
+            y_pred=y_pred,
+            sensitive_features=sensitive,
+        )
+        .by_group["sel"]
+        .to_dict()
+    )
 
     return FairnessResult(
         attribute=sensitive.name or "",

@@ -53,7 +53,4 @@ def top_drivers_for_instance(
         sv = sv[1] if len(sv) == 2 else sv[0]
     sv = np.asarray(sv).reshape(-1)
     order = np.argsort(-np.abs(sv))[:k]
-    return [
-        {"feature": feature_names[i], "shap_value": float(sv[i])}
-        for i in order
-    ]
+    return [{"feature": feature_names[i], "shap_value": float(sv[i])} for i in order]

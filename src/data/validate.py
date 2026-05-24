@@ -27,7 +27,7 @@ def validate_frame(df: pd.DataFrame, schema: pa.DataFrameSchema, name: str) -> d
         return {
             "dataset": name,
             "rows": len(df),
-            "violations": int(len(exc.failure_cases)),
+            "violations": len(exc.failure_cases),
             "examples": exc.failure_cases.head(5).to_dict(orient="records"),
         }
 

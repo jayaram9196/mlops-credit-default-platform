@@ -7,9 +7,9 @@ ModelService API stays identical.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 import joblib
 import numpy as np
@@ -33,12 +33,24 @@ UCI_FIELD_MAP = {
     "education": "EDUCATION",
     "marriage": "MARRIAGE",
     "age": "AGE",
-    "pay_0": "PAY_0", "pay_2": "PAY_2", "pay_3": "PAY_3",
-    "pay_4": "PAY_4", "pay_5": "PAY_5", "pay_6": "PAY_6",
-    "bill_amt1": "BILL_AMT1", "bill_amt2": "BILL_AMT2", "bill_amt3": "BILL_AMT3",
-    "bill_amt4": "BILL_AMT4", "bill_amt5": "BILL_AMT5", "bill_amt6": "BILL_AMT6",
-    "pay_amt1": "PAY_AMT1", "pay_amt2": "PAY_AMT2", "pay_amt3": "PAY_AMT3",
-    "pay_amt4": "PAY_AMT4", "pay_amt5": "PAY_AMT5", "pay_amt6": "PAY_AMT6",
+    "pay_0": "PAY_0",
+    "pay_2": "PAY_2",
+    "pay_3": "PAY_3",
+    "pay_4": "PAY_4",
+    "pay_5": "PAY_5",
+    "pay_6": "PAY_6",
+    "bill_amt1": "BILL_AMT1",
+    "bill_amt2": "BILL_AMT2",
+    "bill_amt3": "BILL_AMT3",
+    "bill_amt4": "BILL_AMT4",
+    "bill_amt5": "BILL_AMT5",
+    "bill_amt6": "BILL_AMT6",
+    "pay_amt1": "PAY_AMT1",
+    "pay_amt2": "PAY_AMT2",
+    "pay_amt3": "PAY_AMT3",
+    "pay_amt4": "PAY_AMT4",
+    "pay_amt5": "PAY_AMT5",
+    "pay_amt6": "PAY_AMT6",
 }
 
 
@@ -88,7 +100,7 @@ class ModelService:
         transformer_path: Path,
         thresholds: DecisionThresholds,
         version: str = "local",
-    ) -> "ModelService":
+    ) -> ModelService:
         bundle = joblib.load(model_path)
         artifacts = joblib.load(transformer_path)
         input_cols = list(artifacts["numeric_columns"]) + list(artifacts["categorical_columns"])

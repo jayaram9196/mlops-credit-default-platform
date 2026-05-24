@@ -11,7 +11,6 @@ is already present.
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -54,8 +53,18 @@ OPENML_COLUMN_MAP = {
     "x23": "PAY_AMT6",
     "y": TARGET_COLUMN,
 }
-INT_COLUMNS = ["SEX", "EDUCATION", "MARRIAGE", "AGE",
-               "PAY_0", "PAY_2", "PAY_3", "PAY_4", "PAY_5", "PAY_6"]
+INT_COLUMNS = [
+    "SEX",
+    "EDUCATION",
+    "MARRIAGE",
+    "AGE",
+    "PAY_0",
+    "PAY_2",
+    "PAY_3",
+    "PAY_4",
+    "PAY_5",
+    "PAY_6",
+]
 
 
 def fetch_uci(dataset_id: int) -> pd.DataFrame:

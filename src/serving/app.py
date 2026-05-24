@@ -12,7 +12,6 @@ import os
 import time
 import uuid
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -101,7 +100,9 @@ async def telemetry(request: Request, call_next):
 @app.get("/health", response_model=HealthResponse)
 def health(request: Request) -> HealthResponse:
     svc: ModelService = request.app.state.service
-    return HealthResponse(status="ok", model_version=svc.version, feature_count=len(svc.feature_names))
+    return HealthResponse(
+        status="ok", model_version=svc.version, feature_count=len(svc.feature_names)
+    )
 
 
 @app.get("/metrics")
@@ -114,7 +115,7 @@ def predict(payload: PredictionRequest, request: Request) -> PredictionResponse:
     svc: ModelService = request.app.state.service
     try:
         scored = svc.predict(payload.applications)
-    except Exception as exc:  # noqa: BLE001 — surface errors at the boundary
+    except Exception as exc:
         log.error("predict.error", error=str(exc), request_id=request.state.request_id)
         raise HTTPException(status_code=500, detail="prediction failed") from exc
 
@@ -140,7 +141,7 @@ def explain(payload: ExplanationRequest, request: Request) -> ExplanationRespons
     top_k = int(params["serving"].get("shap_top_k", 5))
     try:
         prob, drivers = svc.explain(payload.application, top_k=top_k)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.error("explain.error", error=str(exc), request_id=request.state.request_id)
         raise HTTPException(status_code=500, detail="explanation failed") from exc
 

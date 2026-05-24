@@ -137,7 +137,10 @@ def build_transformer(numeric: list[str], categorical: list[str]) -> ColumnTrans
     categorical_pipe = Pipeline(
         steps=[
             ("impute", SimpleImputer(strategy="most_frequent")),
-            ("ohe", OneHotEncoder(handle_unknown="ignore", min_frequency=0.01, sparse_output=False)),
+            (
+                "ohe",
+                OneHotEncoder(handle_unknown="ignore", min_frequency=0.01, sparse_output=False),
+            ),
         ]
     )
     return ColumnTransformer(
