@@ -1,0 +1,29 @@
+Credit Default Risk API installed.
+
+1. Check pods came up:
+   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+2. Port-forward + test locally:
+   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "credit-default-api.fullname" . }} 8000:{{ .Values.service.port }}
+   curl http://localhost:8000/health
+
+{{- if .Values.ingress.enabled }}
+
+3. Ingress hostnames:
+{{- range .Values.ingress.hosts }}
+   https://{{ .host }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.serviceMonitor.enabled }}
+
+4. ServiceMonitor created — Prometheus Operator should start scraping /metrics
+   within the next interval ({{ .Values.serviceMonitor.interval }}).
+{{- end }}
+
+{{- if not .Values.modelInit.enabled }}
+
+NOTE: modelInit is disabled. The image at `{{ .Values.image.repository }}:{{ .Values.image.tag }}`
+must already contain the model under /app/models for the pod to become Ready.
+Enable modelInit in values to fetch from S3/MLflow at startup.
+{{- end }}

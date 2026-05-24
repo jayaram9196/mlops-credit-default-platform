@@ -1,0 +1,144 @@
+# -- Default values for credit-default-api.
+# Override per environment with `-f values-<env>.yaml`.
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/jayaram9196/mlops-credit-default-platform
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}    # set IRSA role-arn here for EKS, e.g. eks.amazonaws.com/role-arn
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false   # FastAPI/uvicorn writes tmpdirs; flip if you mount emptyDir for /tmp
+  capabilities:
+    drop: ["ALL"]
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+  hosts:
+    - host: credit-default.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts: [credit-default.example.com]
+      secretName: credit-default-api-tls
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+# Liveness uses /health; readiness uses /health (separate paths can be added if needed).
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  startup:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 30   # allow up to ~150s for model load
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingressNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+
+# ServiceMonitor for the Prometheus Operator. Disable if you scrape via plain
+# Prometheus pod-annotations.
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  path: /metrics
+  labels: {}            # Prometheus Operator's `release` selector usually goes here
+
+# Init container fetches the registered model from object storage at startup,
+# decoupling image build from model promotion. Default: disabled — the image is
+# expected to carry the model under /app/models. Enable for production.
+modelInit:
+  enabled: false
+  image: amazon/aws-cli:2.18.20
+  modelUri: s3://<bucket>/credit-default-platform/models/staging/
+  awsRegion: us-east-1
+  extraEnv: []
+  command: ["aws"]
+  args:
+    - s3
+    - sync
+    - "{{ .Values.modelInit.modelUri }}"
+    - /models
+
+# Application-level config exposed via ConfigMap (non-secret).
+config:
+  LOG_LEVEL: INFO
+  MODEL_VERSION: "{{ .Values.image.tag }}"
+
+# Sensitive values rendered into a Secret. Leave empty unless you actually need them.
+secrets: {}
+#   MLFLOW_TRACKING_TOKEN: "..."
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Pod anti-affinity for HA — spread replicas across nodes / zones.
+spreadConstraints:
+  enabled: true
+  topologyKey: kubernetes.io/hostname

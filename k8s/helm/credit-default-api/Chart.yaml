@@ -1,0 +1,19 @@
+apiVersion: v2
+name: credit-default-api
+description: |
+  Real-time credit-default risk scoring service. FastAPI + LightGBM, served with
+  Prometheus metrics, SHAP-based explanations, configurable HPA, PDB, and a
+  NetworkPolicy. Designed to run on EKS / AKS / kind.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/jayaram9196/mlops-credit-default-platform
+sources:
+  - https://github.com/jayaram9196/mlops-credit-default-platform
+maintainers:
+  - name: Jayaram
+keywords:
+  - mlops
+  - fastapi
+  - lightgbm
+  - credit-risk

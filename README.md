@@ -15,7 +15,7 @@ See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the full plan and JD-bu
 - [x] Phase 1 — Core ML pipeline (DVC + MLflow + fairness + SHAP)
 - [x] Phase 2 — FastAPI serving + Docker
 - [x] Phase 3 — CI/CD (GitHub Actions + Jenkins)
-- [ ] Phase 4 — Kubernetes (Helm)
+- [x] Phase 4 — Kubernetes (Helm)
 - [ ] Phase 5 — Terraform AWS infra
 - [ ] Phase 6 — Monitoring (Prometheus + Grafana + Evidently)
 - [ ] Phase 7 — Retraining orchestration (Airflow)

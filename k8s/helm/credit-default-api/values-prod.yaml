@@ -1,0 +1,48 @@
+# Production overrides for credit-default-api.
+# Apply with:
+#   helm upgrade --install credit-default-api k8s/helm/credit-default-api \
+#     -n credit-default --create-namespace \
+#     -f k8s/helm/credit-default-api/values-prod.yaml \
+#     --set image.tag=sha-<git-sha>
+
+replicaCount: 3
+
+image:
+  pullPolicy: IfNotPresent
+  # tag set per release by CI/CD (sha-<short>)
+
+serviceAccount:
+  annotations:
+    # Replace with the IRSA role arn provisioned by Terraform (Phase 5).
+    eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/credit-default-api-irsa
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: credit-default-api.prod.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts: [credit-default-api.prod.example.com]
+      secretName: credit-default-api-tls
+
+resources:
+  requests: { cpu: "500m", memory: "1Gi" }
+  limits:   { cpu: "2000m", memory: "2Gi" }
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 60
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus            # match the Prometheus Operator release label
+
+modelInit:
+  enabled: true
+  modelUri: s3://credit-default-platform-prod-artifacts/models/staging/

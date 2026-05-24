@@ -1,0 +1,45 @@
+# Argo CD Application — GitOps deploy of credit-default-api.
+# Apply once to your Argo CD instance with:
+#   kubectl apply -n argocd -f k8s/argocd-application.yaml
+#
+# Argo CD will then keep the cluster in sync with this chart on every push to
+# main, pulling the image tag from `values-prod.yaml`.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: credit-default-api
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/jayaram9196/mlops-credit-default-platform.git
+    targetRevision: main
+    path: k8s/helm/credit-default-api
+    helm:
+      releaseName: credit-default-api
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: credit-default
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
