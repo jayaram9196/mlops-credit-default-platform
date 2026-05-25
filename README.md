@@ -12,6 +12,10 @@ drift with Evidently, re-trains weekly (or on drift) via an Airflow DAG, and
 explains every adverse decision with a **RAG layer over a loan-policy
 corpus** that refuses to cite protected attributes.
 
+> 📖 **For the story of how this was built — what tools were used, what
+> decisions were made, what broke and how it was fixed — see
+> [WALKTHROUGH.md](WALKTHROUGH.md).**
+
 ```
                     AWS (Terraform-managed)
                     ┌────────────────────────────────────────────────────────┐
