@@ -84,6 +84,9 @@ jobs:
             | sudo sh -s -- -b /usr/local/bin
 
       - name: trivy image scan
+        # Use the digest, not a tag, so the scan pins to the exact image just
+        # pushed. `meta.outputs.version` is the first generated tag (usually
+        # `main`), which would give the broken ref `sha-main`.
         run: |
           trivy image \
             --severity CRITICAL,HIGH \
@@ -91,7 +94,7 @@ jobs:
             --exit-code 0 \
             --format sarif \
             --output trivy-image.sarif \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ needs.build-push.outputs.image-tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build-push.outputs.image-digest }}
 
       - name: upload sarif
         if: always()
