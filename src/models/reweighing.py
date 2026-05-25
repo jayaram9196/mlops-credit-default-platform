@@ -5,7 +5,7 @@ P(Y, S) factorises as the product of marginals P(Y) * P(S). This counteracts
 the prevalence skew across subgroups that drives equal-opportunity disparity.
 
 Supports one or more sensitive attributes: with multiple, the cells are the
-cartesian product of categories (e.g. AGE_BIN × EDUCATION).
+cartesian product of categories (e.g. AGE_BIN x EDUCATION).
 
 Reference:
     Kamiran, F., Calders, T. (2012). "Data preprocessing techniques for

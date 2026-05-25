@@ -60,7 +60,7 @@ def test_composite_sensitive_produces_finer_cells():
     s1 = pd.Series(["a", "a", "b", "b", "a", "a", "b", "b"])
     s2 = pd.Series(["x", "x", "x", "x", "y", "y", "y", "y"])
     summary = weight_summary(compute_weights(y, s1, s2), y, s1, s2)
-    # 4 (a|x, a|y, b|x, b|y) groups × 2 outcomes = 8 cells max
+    # 4 (a|x, a|y, b|x, b|y) groups x 2 outcomes = 8 cells max
     assert "|" in summary["sensitive"].iloc[0]
     assert len(summary) <= 8
 
