@@ -202,7 +202,14 @@ def main() -> int:
     train_full = drop_high_missing(train_full, cfg["drop_threshold_missing"], protect=keep_always)
     holdout_full = holdout_full[train_full.columns.intersection(holdout_full.columns)]
 
-    feature_cols = [c for c in train_full.columns if c not in {TARGET, *protected}]
+    excluded = set(cfg.get("excluded_features") or [])
+    feature_cols = [c for c in train_full.columns if c not in ({TARGET, *protected} | excluded)]
+    if excluded:
+        log.info(
+            "features.excluded",
+            excluded=sorted(excluded),
+            reason="Phase 1.5 bias mitigation",
+        )
     numeric, categorical = split_dtypes(train_full[feature_cols], exclude=[])
 
     transformer = build_transformer(numeric, categorical)

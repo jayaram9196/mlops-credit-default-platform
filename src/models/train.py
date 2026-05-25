@@ -47,6 +47,7 @@ def cv_objective(
     cv_folds: int,
     early_stopping_rounds: int,
     random_state: int,
+    sample_weights: np.ndarray | None = None,
 ) -> float:
     params = {
         **base_params,
@@ -65,11 +66,13 @@ def cv_objective(
     for fold, (tr_idx, va_idx) in enumerate(skf.split(X, y)):
         X_tr, X_va = X.iloc[tr_idx], X.iloc[va_idx]
         y_tr, y_va = y.iloc[tr_idx], y.iloc[va_idx]
+        sw_tr = sample_weights[tr_idx] if sample_weights is not None else None
 
         model = lgb.LGBMClassifier(**params)
         model.fit(
             X_tr,
             y_tr,
+            sample_weight=sw_tr,
             eval_set=[(X_va, y_va)],
             callbacks=[lgb.early_stopping(early_stopping_rounds, verbose=False)],
         )
@@ -99,8 +102,30 @@ def main() -> int:
     models_dir = ensure_dir(project_path("models"))
     reports_dir = ensure_dir(project_path("reports"))
 
-    X, y, _ = load_train(processed / "train.parquet")
+    X, y, protected = load_train(processed / "train.parquet")
     log.info("train.data.loaded", rows=len(X), features=X.shape[1], default_rate=float(y.mean()))
+
+    sample_weights = None
+    rw_cfg = train_cfg.get("bias_mitigation", {}).get("reweighing", {})
+    rw_attrs = rw_cfg.get("sensitive_attributes") or (
+        [rw_cfg["sensitive_attribute"]] if rw_cfg.get("sensitive_attribute") else []
+    )
+    rw_attrs = [a for a in rw_attrs if a in protected.columns]
+    if rw_cfg.get("enabled") and rw_attrs:
+        from src.models.reweighing import compute_weights, weight_summary
+
+        sensitives = [protected[a] for a in rw_attrs]
+        sample_weights = compute_weights(y, *sensitives)
+        summary = weight_summary(sample_weights, y, *sensitives)
+        log.info(
+            "train.reweighing.applied",
+            attributes=rw_attrs,
+            n_cells=len(summary),
+            min_weight=float(sample_weights.min()),
+            max_weight=float(sample_weights.max()),
+            mean_weight=float(sample_weights.mean()),
+        )
+        summary.to_csv(reports_dir / "reweighing_summary.csv", index=False)
 
     base_params = {
         "objective": "binary",
@@ -134,6 +159,7 @@ def main() -> int:
                 cv_folds=train_cfg["cv_folds"],
                 early_stopping_rounds=train_cfg["early_stopping_rounds"],
                 random_state=train_cfg["random_state"],
+                sample_weights=sample_weights,
             ),
             n_trials=train_cfg["optuna_trials"],
             show_progress_bar=False,
@@ -150,7 +176,10 @@ def main() -> int:
 
         final_params = {**base_params, **best}
         final_model = lgb.LGBMClassifier(**final_params)
-        final_model.fit(X, y)
+        final_model.fit(X, y, sample_weight=sample_weights)
+        if sample_weights is not None:
+            mlflow.log_param("reweighing.sensitive_attributes", ",".join(rw_attrs))
+            mlflow.log_artifact(str(reports_dir / "reweighing_summary.csv"))
 
         model_path = models_dir / "model.joblib"
         joblib.dump({"model": final_model, "feature_names": list(X.columns)}, model_path)
