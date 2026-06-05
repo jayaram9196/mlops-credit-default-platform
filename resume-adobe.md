@@ -116,39 +116,31 @@ Alertmanager, structlog, OpenTelemetry-ready instrumentation
 Repo: github.com/jayaram9196/mlops-credit-default-platform
 
 - Built a six-stage DVC pipeline (ingest → validate → features → train →
-  evaluate → register) with LightGBM tuned via Optuna, all experiments
-  tracked in MLflow with nested runs and gated promotion to the Model
-  Registry by AUC + fairness thresholds. Holdout AUC 0.7456 / KS 0.385 /
-  Lift@10% 2.92.
-- Served the model via FastAPI on EKS with p95 prediction latency
-  under 200 ms in a non-root multi-stage Docker image; Pydantic v2 input
-  validation, SHAP-based `/explain` endpoint, Prometheus `/metrics`.
-- Wrote the Helm chart (Deployment, HPA, PDB, NetworkPolicy, IRSA
-  ServiceAccount, ServiceMonitor) plus an Argo Rollouts canary spec that
-  promotes through 10 → 25 → 50 → 100% with Prometheus AnalysisTemplate
-  checks on 5xx rate and p95 latency for safe A/B-style rollouts.
-- Implemented CI/CD in GitHub Actions and a mirrored Jenkinsfile —
-  per-PR ruff, mypy, pytest, bandit, and trivy; a `train` workflow that
-  posts AUC and fairness diff back on the PR; on-merge image build,
-  push to GHCR with sha + semver tags, and trivy image scan.
-- Authored AWS infrastructure as Terraform — VPC, EKS, ECR, S3 with
-  versioning and lifecycle, IAM with IRSA and GitHub-OIDC deploy role,
-  CloudWatch alarms, SageMaker training role, S3-triggered Lambda batch
-  scorer; clean `terraform validate`.
-- Wired Evidently data + concept drift detection to a Kubernetes
-  CronJob; built Prometheus rules, Alertmanager Slack routing, and 2
-  Grafana dashboards (SRE + ML).
-- Added drift-triggered retraining via an Airflow DAG and an equivalent
-  AWS Step Functions ASL state machine that runs SageMaker training
-  jobs natively.
+  evaluate → register) with LightGBM tuned via Optuna, MLflow nested
+  runs for experiment tracking, and gated promotion to the Model
+  Registry by AUC + Fairlearn fairness thresholds — holdout AUC 0.7456,
+  KS 0.385, Lift@10% 2.92.
+- Served the model via FastAPI (Pydantic v2 validation, SHAP `/explain`,
+  Prometheus `/metrics`) at p95 < 200 ms in a non-root multi-stage Docker
+  image, deployed on EKS through a Helm chart (HPA, PDB, NetworkPolicy,
+  IRSA) with Argo Rollouts canary (10 → 25 → 50 → 100%) guarded by
+  Prometheus AnalysisTemplate checks on 5xx rate and p95 latency for
+  A/B-style rollouts.
+- Shipped CI/CD in GitHub Actions and a mirrored Jenkinsfile — per-PR
+  ruff, mypy, pytest, bandit, and trivy plus a `train` workflow that
+  posts AUC + fairness diff back on the PR; on-merge build pushes to
+  GHCR with sha + semver tags and runs a trivy image scan.
+- Authored AWS infrastructure as Terraform (VPC, EKS, ECR, S3, IAM with
+  IRSA + GitHub-OIDC deploy role, CloudWatch alarms, SageMaker training
+  role, S3-triggered Lambda batch scorer); wired Evidently drift
+  detection to a Kubernetes CronJob and added drift-triggered retraining
+  via an Airflow DAG with an AWS Step Functions ASL alternative.
 - Built an LLM/RAG explanation layer on LangChain + FAISS over a
-  loan-policy corpus with a protected-attribute blocklist that refuses
-  to cite SEX / AGE / MARRIAGE / EDUCATION even when SHAP attributes
-  there — surfaced through a `/explain/llm` endpoint.
-- Reduced AGE-band equal-opportunity disparity from 0.318 to 0.157
-  (50% reduction) via Kamiran-Calders sample reweighing + AGE feature
-  exclusion for a 0.7-point AUC cost; 34 tests passing across unit and
-  integration suites.
+  loan-policy corpus exposed via `/explain/llm`, with a protected-
+  attribute blocklist that refuses to cite SEX / AGE / MARRIAGE /
+  EDUCATION even when SHAP attributes there; reduced AGE-band equal-
+  opportunity disparity 50% (0.318 → 0.157) via Kamiran-Calders sample
+  reweighing for a 0.7-point AUC cost.
 
 **YouTube Sentiment Insights** — Foundational MLOps + Chrome extension demo
 
